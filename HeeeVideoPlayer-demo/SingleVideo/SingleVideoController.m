@@ -50,15 +50,13 @@
         if ([UIDevice currentDevice].orientation == UIInterfaceOrientationPortrait) {
             [self p_changeOrientation:UIInterfaceOrientationLandscapeLeft];
             [UIView animateWithDuration:0.3 animations:^{
-                player.progressBottomGap = 34;
-                player.progressSideGap = 34;
+                player.progressBarInsets = UIEdgeInsetsMake(0, 34, 34, 34);
                 player.frame = CGRectMake(0, 32, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height - 32);
             }];
         }else{
             [self p_changeOrientation:UIInterfaceOrientationPortrait];
             [UIView animateWithDuration:0.3 animations:^{
-                player.progressBottomGap = 0;
-                player.progressSideGap = 0;
+                player.progressBarInsets = UIEdgeInsetsZero;
                 player.frame = self.originalFrame;
             }];
         }
@@ -68,16 +66,14 @@
         if (self.fullFlag) {
             [[UIApplication sharedApplication].keyWindow addSubview:player];
             [UIView animateWithDuration:0.3 animations:^{
-                player.progressBottomGap = 20;
-                player.progressSideGap = 34;
+                player.progressBarInsets = UIEdgeInsetsMake(0, 34, 20, 34);
                 player.transform = CGAffineTransformMakeRotation(-M_PI_2);
                 player.frame = [UIScreen mainScreen].bounds;
             }];
         }else{
             [self.view addSubview:player];
             [UIView animateWithDuration:0.3 animations:^{
-                player.progressBottomGap = 0;
-                player.progressSideGap = 0;
+                player.progressBarInsets = UIEdgeInsetsZero;
                 player.transform = CGAffineTransformIdentity;
                 player.frame = self.originalFrame;
             }];

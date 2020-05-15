@@ -33,8 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,assign) CGFloat duration;//总时长
 @property (nonatomic,assign) CGFloat currentPlayTime;//当前播放的时间
 @property (nonatomic,assign) CGFloat videoBufferTime;//当前视频缓冲时间
-@property (nonatomic,assign) CGFloat progressBottomGap;//进度条控件底部间隙
-@property (nonatomic,assign) CGFloat progressSideGap;//进度条控件左右边距
+@property (nonatomic,assign) UIEdgeInsets progressBarInsets;//进度条部分的位置偏移
 @property (nonatomic,assign) BOOL panFlag;//正在拖动进度条标志
 @property (nonatomic,assign) BOOL canHideItemFlag;//可以自动隐藏控件的标志
 @property (nonatomic,assign) BOOL brightnessVolumeControl;

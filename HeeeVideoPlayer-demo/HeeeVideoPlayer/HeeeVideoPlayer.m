@@ -154,14 +154,9 @@
     self.placeholderImgV.image = thumbnailImage;
 }
 
-- (void)setProgressBottomGap:(CGFloat)progressBottomGap {
-    _progressBottomGap = progressBottomGap;
-    self.videoControlView.progressBottomGap = progressBottomGap;
-}
-
-- (void)setProgressSideGap:(CGFloat)progressSideGap {
-    _progressSideGap = progressSideGap;
-    self.videoControlView.progressSideGap = progressSideGap;
+- (void)setProgressBarInsets:(UIEdgeInsets)progressBarInsets {
+    _progressBarInsets = progressBarInsets;
+    self.videoControlView.progressBarInsets = progressBarInsets;
 }
 
 - (void)setThumbnailImageContentMode:(UIViewContentMode)thumbnailImageContentMode {

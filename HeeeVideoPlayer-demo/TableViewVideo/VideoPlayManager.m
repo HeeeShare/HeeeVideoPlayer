@@ -95,10 +95,9 @@
             if (self.videoPlayView.thumbnailImage.size.width >= self.videoPlayView.thumbnailImage.size.height) {
                 self.videoPlayView.transform = CGAffineTransformMakeRotation(-M_PI_2);
                 self.videoPlayView.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
-                self.videoPlayView.progressBottomGap = self.bottomSafeSize/2;
-                self.videoPlayView.progressSideGap = self.bottomSafeSize + 20;
+                player.progressBarInsets = UIEdgeInsetsMake(0, self.bottomSafeSize + 20, self.bottomSafeSize/2, self.bottomSafeSize + 20);
             }else{
-                self.videoPlayView.progressBottomGap = self.bottomSafeSize;
+                player.progressBarInsets = UIEdgeInsetsMake(0, 0, self.bottomSafeSize, 0);
                 self.videoPlayView.frame = [UIScreen mainScreen].bounds;
             }
         } completion:^(BOOL finished) {
@@ -106,8 +105,7 @@
         }];
     }else{
         [UIView animateWithDuration:0.3 animations:^{
-            self.videoPlayView.progressBottomGap = 0;
-            self.videoPlayView.progressSideGap = 0;
+            player.progressBarInsets = UIEdgeInsetsZero;
             self.videoPlayView.transform = CGAffineTransformIdentity;
             self.videoPlayView.frame = frame;
         } completion:^(BOOL finished) {

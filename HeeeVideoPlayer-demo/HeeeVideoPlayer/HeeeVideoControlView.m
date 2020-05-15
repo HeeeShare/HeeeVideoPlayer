@@ -192,9 +192,9 @@
 
 - (void)p_setupFrame {
     [UIView animateWithDuration:self.firstLayoutFlag?0:0.3 animations:^{
-        self.littleProgressBackView.frame = CGRectMake(self.progressSideGap, self.bounds.size.height - lineViewHeight, self.bounds.size.width - 2*self.progressSideGap, lineViewHeight);
+        self.littleProgressBackView.frame = CGRectMake(self.progressBarInsets.left, self.bounds.size.height - lineViewHeight, self.bounds.size.width - self.progressBarInsets.left - self.progressBarInsets.right, lineViewHeight);
         self.littleToPlayLineView.frame = self.littleProgressBackView.bounds;
-        self.progressBackView.frame = CGRectMake(self.progressSideGap, self.bounds.size.height - 40 - self.progressBottomGap, self.bounds.size.width - 2*self.progressSideGap, 40);
+        self.progressBackView.frame = CGRectMake(self.progressBarInsets.left, self.bounds.size.height - 40 - self.progressBarInsets.bottom, self.bounds.size.width - self.progressBarInsets.left - self.progressBarInsets.right, 40);
         self.playBtn.frame = CGRectMake((self.bounds.size.width - 60)/2, (self.bounds.size.height - 60)/2, 60, 60);
         self.fullScreenBtn.frame = CGRectMake(self.progressBackView.bounds.size.width - 40, 0, 40, 40);
         self.playedTimeLabel.frame = CGRectMake(8, 0, 50, 40);

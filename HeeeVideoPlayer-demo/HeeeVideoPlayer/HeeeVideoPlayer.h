@@ -41,8 +41,7 @@ typedef enum : NSUInteger {
 @property (nonatomic,assign) BOOL mutePlay;//是否要静音播放，默认NO
 @property (nonatomic,assign) BOOL brightnessVolumeControl;//是否需要亮度与音量的手势控制，默认YES
 @property (nonatomic,assign) BOOL showLittleProgress;//当隐藏其他控件时，是否显示底部的小进度条，默认NO
-@property (nonatomic,assign) CGFloat progressBottomGap;//进度条控件底部间隙
-@property (nonatomic,assign) CGFloat progressSideGap;//进度条控件左右边距
+@property (nonatomic,assign) UIEdgeInsets progressBarInsets;//进度条部分的位置偏移
 @property (nonatomic,strong) UIImage *thumbnailImage;//设置视频占位图
 @property (nonatomic,assign) UIViewContentMode thumbnailImageContentMode;//占位图的填充模式，默认UIViewContentModeScaleAspectFill
 @property (nonatomic,assign,readonly) HeeePlayerState playerState;//播放器状态
