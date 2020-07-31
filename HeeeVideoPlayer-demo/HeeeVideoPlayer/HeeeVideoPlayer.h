@@ -34,7 +34,8 @@ typedef enum : NSUInteger {
 
 @interface HeeeVideoPlayer : UIView
 @property (nonatomic,copy) NSString *videoUrl;//视频地址
-@property (nonatomic,assign) CGFloat videoDuration;//视频的时长，建议主动设置，否则自动获取。即使设置了也会在加载过程中获取，以校准时长。
+@property (nonatomic,assign) CGFloat videoDuration;//视频的时长，可以不设置。视频播放中会获取校准时长。
+@property (nonatomic,assign) BOOL autoGetVideoDuration;//是否主动获取视频时长，yes表示即使没播放视频也会获取视频
 @property (nonatomic,strong) UIColor *playedPartColor;//已播放进度条颜色
 @property (nonatomic,strong) UIColor *indicatorColor;//小圆点的颜色
 @property (nonatomic,copy) NSArray <UIView *>*itemArray;//需要添加到控制层上的自定义组件

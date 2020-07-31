@@ -10,7 +10,7 @@
 #import "HeeeVideoPlayer.h"
 
 @interface VideoPlayManager ()<HeeeVideoPlayerDelegate>
-@property (nonatomic,strong) HeeeVideoPlayer *videoPlayView;
+@property (nonatomic,strong) HeeeVideoPlayer *videoPlayer;
 @property (nonatomic,strong) UIView *backView;
 @property (nonatomic,assign) CGRect originalFrame;
 @property (nonatomic,assign) BOOL fullScreenFlag;
@@ -34,51 +34,55 @@
 
 - (void)setVideoUrl:(NSString *)videoUrl {
     _videoUrl = videoUrl;
-    self.videoPlayView.videoUrl = videoUrl;
+    self.videoPlayer.videoUrl = videoUrl;
 }
 
 - (void)setThumbnailImage:(UIImage *)thumbnailImage {
     _thumbnailImage = thumbnailImage;
-    self.videoPlayView.thumbnailImage = thumbnailImage;
+    self.videoPlayer.thumbnailImage = thumbnailImage;
 }
 
 - (void)setVideoDuration:(CGFloat)videoDuration {
     _videoDuration = videoDuration;
-    self.videoPlayView.videoDuration = videoDuration;
+    self.videoPlayer.videoDuration = videoDuration;
 }
 
 - (void)playVideoOnContainerView:(UIView *)view videoFrame:(CGRect)frame {
     [view addSubview:self.backView];
-    [self.backView addSubview:self.videoPlayView];
+    [self.backView addSubview:self.videoPlayer];
     self.backView.frame = frame;
-    self.videoPlayView.frame = self.backView.bounds;
+    self.videoPlayer.frame = self.backView.bounds;
     self.originalFrame = frame;
 }
 
 - (void)playVideo {
-    [self.videoPlayView play];
+    [self.videoPlayer play];
     self.pauseVideoByUser = NO;
     self.isPlayFinished = NO;
 }
 
 - (void)pauseVideo {
-    [self.videoPlayView pause];
+    [self.videoPlayer pause];
+}
+
+- (void)hideControlView {
+    [self.videoPlayer hideControlView:NO];
 }
 
 - (void)destroyVideoPlayer {
-    if (_videoPlayView) {
+    if (_videoPlayer) {
         [self pauseVideo];
-        [self.videoPlayView removeFromSuperview];
-        self.videoPlayView = nil;
+        [self.videoPlayer removeFromSuperview];
+        self.videoPlayer = nil;
     }
 }
 
 - (void)p_close {
-    [self.videoPlayView fullScreen];
+    [self.videoPlayer fullScreen];
 }
 
 - (BOOL)isPlaying {
-    return self.videoPlayView.playerState==HeeePlayerStatePlaying;
+    return self.videoPlayer.playerState==HeeePlayerStatePlaying;
 }
 
 #pragma mark - HeeeVideoPlayerDelegate
@@ -88,17 +92,17 @@
     UIWindow *window = [UIApplication sharedApplication].keyWindow;
     CGRect frame = [self.backView.superview convertRect:self.backView.frame toView:window];
     if (self.fullScreenFlag) {
-        [window addSubview:self.videoPlayView];
-        self.videoPlayView.frame = frame;
+        [window addSubview:self.videoPlayer];
+        self.videoPlayer.frame = frame;
         
         [UIView animateWithDuration:0.3 animations:^{
-            if (self.videoPlayView.thumbnailImage.size.width >= self.videoPlayView.thumbnailImage.size.height) {
-                self.videoPlayView.transform = CGAffineTransformMakeRotation(-M_PI_2);
-                self.videoPlayView.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
+            if (self.videoPlayer.thumbnailImage.size.width >= self.videoPlayer.thumbnailImage.size.height) {
+                self.videoPlayer.transform = CGAffineTransformMakeRotation(-M_PI_2);
+                self.videoPlayer.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
                 player.progressBarInsets = UIEdgeInsetsMake(0, self.bottomSafeSize + 20, self.bottomSafeSize/2, self.bottomSafeSize + 20);
             }else{
                 player.progressBarInsets = UIEdgeInsetsMake(0, 0, self.bottomSafeSize, 0);
-                self.videoPlayView.frame = [UIScreen mainScreen].bounds;
+                self.videoPlayer.frame = [UIScreen mainScreen].bounds;
             }
         } completion:^(BOOL finished) {
             [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationNone];
@@ -106,11 +110,11 @@
     }else{
         [UIView animateWithDuration:0.3 animations:^{
             player.progressBarInsets = UIEdgeInsetsZero;
-            self.videoPlayView.transform = CGAffineTransformIdentity;
-            self.videoPlayView.frame = frame;
+            self.videoPlayer.transform = CGAffineTransformIdentity;
+            self.videoPlayer.frame = frame;
         } completion:^(BOOL finished) {
-            self.videoPlayView.frame = self.backView.bounds;
-            [self.backView addSubview:self.videoPlayView];
+            self.videoPlayer.frame = self.backView.bounds;
+            [self.backView addSubview:self.videoPlayer];
             [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
         }];
     }
@@ -130,14 +134,15 @@
 }
 
 #pragma mark - lazy
-- (HeeeVideoPlayer *)videoPlayView {
-    if (!_videoPlayView) {
-        _videoPlayView = [[HeeeVideoPlayer alloc] init];
-        _videoPlayView.brightnessVolumeControl = NO;
-        _videoPlayView.delegate = self;
+- (HeeeVideoPlayer *)videoPlayer {
+    if (!_videoPlayer) {
+        _videoPlayer = [[HeeeVideoPlayer alloc] init];
+        _videoPlayer.autoGetVideoDuration = YES;
+        _videoPlayer.brightnessVolumeControl = NO;
+        _videoPlayer.delegate = self;
     }
     
-    return _videoPlayView;
+    return _videoPlayer;
 }
 
 -(UIView *)backView {

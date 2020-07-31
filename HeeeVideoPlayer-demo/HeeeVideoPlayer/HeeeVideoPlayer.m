@@ -85,7 +85,12 @@
 
 - (void)didMoveToSuperview {
     [super didMoveToSuperview];
+    
+    self.videoControlView.duration = self.videoDuration;
     [self p_handleIndicatiorTimer];
+    if (_autoGetVideoDuration) {
+        [self p_getVideoDuration];
+    }
 }
 
 - (void)layoutSubviews {
@@ -113,7 +118,6 @@
     self.videoControlView.currentPlayTime = self.currentPlayTime;
     self.videoControlView.videoBufferTime = 0;
     [self p_addObserver];
-    [self p_getVideoDuration:nil];
 }
 
 - (void)setPlayerState:(HeeePlayerState)playerState {
@@ -204,13 +208,6 @@
             }
         }
     }else if ([keyPath isEqualToString:@"loadedTimeRanges"]) {
-        NSArray *array = self.player.currentItem.loadedTimeRanges;
-        // 本次缓冲的时间范围
-        CMTimeRange timeRange = [array.firstObject CMTimeRangeValue];
-        // 缓冲总长度
-        NSTimeInterval totalBuffer = CMTimeGetSeconds(timeRange.start) + CMTimeGetSeconds(timeRange.duration);
-        self.videoControlView.videoBufferTime = totalBuffer;
-        
         CGFloat sec = CMTimeGetSeconds(self.playerItem.duration);
         if (!isnan(sec) && self.videoDuration != sec) {
             self.videoDuration = sec;
@@ -218,11 +215,16 @@
             [self.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.duration*self.seekRate,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
         }
         
+        NSArray *array = self.player.currentItem.loadedTimeRanges;
+        // 本次缓冲的时间范围
+        CMTimeRange timeRange = [array.firstObject CMTimeRangeValue];
+        // 缓冲总长度
+        NSTimeInterval totalBuffer = CMTimeGetSeconds(timeRange.start) + CMTimeGetSeconds(timeRange.duration);
+        self.videoControlView.videoBufferTime = totalBuffer;
+        
         // 计算缓冲百分比例
         NSTimeInterval scale = 0.0;
-        if (self.videoDuration<=0.0) {
-            [self p_getVideoDuration:nil];
-        }else{
+        if (self.videoDuration > 0.0) {
             scale = totalBuffer/self.videoDuration;
         }
         NSLog(@"视频总时长:%f, 已缓冲时间:%f, 已缓冲进度:%f", self.videoDuration, totalBuffer, scale);
@@ -292,15 +294,11 @@
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         self.loadingView.alpha = 1.0;
     });
-    if (self.videoDuration > 0 && self.playerState != HeeePlayerStateError) {
-        [self p_playAction];
-    }else if (self.playerState == HeeePlayerStateError) {
+    
+    if (self.playerState == HeeePlayerStateError) {
         [self p_reloadPlayerToPlay];
-    }else if (self.videoDuration == 0) {
-        __weak __typeof(self) weakSelf = self;
-        [self p_getVideoDuration:^{
-            [weakSelf p_playAction];
-        }];
+    }else{
+        [self p_playAction];
     }
 }
 
@@ -451,36 +449,27 @@
 }
 
 //获取视频长度
-- (void)p_getVideoDuration:(void(^)(void))didGetVideoDuration {
-    if (self.videoDuration) {
-        NSLog(@"视频总时长:%f",self.videoDuration);
-        self.videoControlView.duration = self.videoDuration;
-        if (didGetVideoDuration) {
-            didGetVideoDuration();
+- (void)p_getVideoDuration {
+    self.getDurationQueue = dispatch_queue_create("com.Heee.getVideoDuration", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(self.getDurationQueue, ^{
+        NSURL*videoUrl = [NSURL URLWithString:self.videoUrl];
+        if (self.isLocalVideo) {
+            videoUrl = [NSURL fileURLWithPath:self.videoUrl];
         }
-    }else{
-        self.getDurationQueue = dispatch_queue_create("com.Heee.getVideoDuration", DISPATCH_QUEUE_SERIAL);
-        dispatch_async(self.getDurationQueue, ^{
-            NSURL*videoUrl = [NSURL URLWithString:self.videoUrl];
-            if (self.isLocalVideo) {
-                videoUrl = [NSURL fileURLWithPath:self.videoUrl];
-            }
-            
-            AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:videoUrl options:nil];
-            CMTime time = [avUrlAsset duration];
-            self.videoDuration = CMTimeGetSeconds(time);
-            if (isnan(self.videoDuration)) {
-                self.videoDuration = 0;
-            }
-            NSLog(@"视频总时长:%f",self.videoDuration);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.videoControlView.duration = self.videoDuration;
-                if (didGetVideoDuration) {
-                    didGetVideoDuration();
-                }
-            });
+        
+        AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:videoUrl options:nil];
+        CMTime time = [avUrlAsset duration];
+        self.videoDuration = CMTimeGetSeconds(time);
+        if (isnan(self.videoDuration)) {
+            self.videoDuration = 0;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.videoControlView.duration = self.videoDuration;
         });
-    }
+        
+        NSLog(@"视频总时长:%f",self.videoDuration);
+    });
 }
 
 - (void)p_pauseByEventsStart {

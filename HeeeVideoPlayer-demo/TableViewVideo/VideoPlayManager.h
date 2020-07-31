@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)playVideo;
 - (void)pauseVideo;
 - (void)destroyVideoPlayer;
+- (void)hideControlView;
 
 @end
 

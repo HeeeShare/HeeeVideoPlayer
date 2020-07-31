@@ -26,7 +26,7 @@
     self.originalFrame = CGRectMake(0, topGap, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.width*9/16.0);
     
     HeeeVideoPlayer *videoPlayer = [[HeeeVideoPlayer alloc] initWithFrame:self.originalFrame];
-    videoPlayer.videoDuration = 272;
+    videoPlayer.autoGetVideoDuration = YES;
     videoPlayer.thumbnailImage = [UIImage imageNamed:@"VideoThumbnail.png"];
     videoPlayer.delegate = self;
     videoPlayer.videoUrl = @"http://aliuwmp3.changba.com/userdata/video/45F6BD5E445E4C029C33DC5901307461.mp4";

@@ -108,6 +108,9 @@
     
     if (self.duration > 0 && currentPlayTime >=0 &&  currentPlayTime <= self.duration) {
         self.playRate = (float)currentPlayTime/self.duration;
+        if (self.playRate > 1) {
+            self.playRate = 1;
+        }
         self.playedTimeLabel.text = [self p_getTimeStr:currentPlayTime];
         [self p_updatePlayRate];
     }
@@ -128,7 +131,11 @@
     _videoBufferTime = videoBufferTime;
     if (self.duration <= 0) return;
     
-    self.bufferLineView.frame = CGRectMake(self.playedLineView.frame.origin.x, self.playedLineView.frame.origin.y, self.totalIndicatorWidth*videoBufferTime/self.duration, self.playedLineView.frame.size.height);
+    CGFloat bufferRate = videoBufferTime/self.duration;
+    if (bufferRate > 1) {
+        bufferRate = 1;
+    }
+    self.bufferLineView.frame = CGRectMake(self.playedLineView.frame.origin.x, self.playedLineView.frame.origin.y, self.totalIndicatorWidth*bufferRate, self.playedLineView.frame.size.height);
     self.littleBufferLineView.frame = CGRectMake(0, 0, self.littleProgressBackView.bounds.size.width*videoBufferTime/self.duration, lineViewHeight);
 }
 

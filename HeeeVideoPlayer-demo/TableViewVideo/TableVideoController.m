@@ -41,7 +41,10 @@
             self.autoPauseVideo = YES;
         }
     }else if(![VideoPlayManager shareInstance].isPlayFinished) {
-        if (self.autoPauseVideo) [[VideoPlayManager shareInstance] playVideo];
+        if (self.autoPauseVideo) {
+            [[VideoPlayManager shareInstance] playVideo];
+            [[VideoPlayManager shareInstance] hideControlView];
+        }
     }
 }
 
