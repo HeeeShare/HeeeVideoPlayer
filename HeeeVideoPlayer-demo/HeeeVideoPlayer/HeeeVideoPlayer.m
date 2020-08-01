@@ -282,11 +282,12 @@
     [self p_removeObserver];
     if (!self.player.currentItem) {
         if (self.isLocalVideo) {
-            self.player = [AVPlayer playerWithURL:[NSURL fileURLWithPath:self.videoUrl]];
+            self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL fileURLWithPath:self.videoUrl]];
         }else{
             self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:self.videoUrl]];
-            self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
         }
+        
+        self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
     }
     
     [self p_addObserver];
