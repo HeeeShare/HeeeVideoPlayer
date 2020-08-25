@@ -211,7 +211,9 @@
 }
 
 - (void)notifyOthersOnDeactivation {
-    [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+    if (self.needNotifyOthersOnDeactivation) {
+        [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+    }
 }
 
 #pragma mark - observer&notify
@@ -294,6 +296,7 @@
     self.thumbnailImageContentMode = UIViewContentModeScaleAspectFit;
     self.brightnessVolumeControl = YES;
     self.showLittleProgress = NO;
+    self.needNotifyOthersOnDeactivation = YES;
 }
 
 - (void)p_play {
@@ -331,6 +334,13 @@
     }
 }
 
+- (void)stop {
+    [self pause];
+    [self seekToTime:0];
+    self.videoControlView.videoBufferTime = 0;
+    [self p_handlePlayFinished];
+}
+
 - (void)p_playAction {
     if (self.playerState==HeeePlayerStatePlayFinished) {
         [self.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.currentPlayTime,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
@@ -341,6 +351,7 @@
     }
     
     self.player.volume = !self.mutePlay;
+    [self setMutePlay:self.mutePlay];
     [self.player play];
     self.playerState = HeeePlayerStatePlaying;
     self.videoControlView.playBtn.selected = YES;
@@ -415,24 +426,13 @@
             }];
         }
         
-        [weakSelf setMutePlay:weakSelf.mutePlay];
-        
         if (weakSelf.delegate && [weakSelf.delegate respondsToSelector:@selector(videoPlayer:playingAtTime:)]) {
             [weakSelf.delegate videoPlayer:weakSelf playingAtTime:weakSelf.currentPlayTime];
         }
         
         //播放完毕
         if (weakSelf.videoDuration > 0 &&weakSelf.currentPlayTime >= weakSelf.videoDuration) {
-            weakSelf.playerState = HeeePlayerStatePlayFinished;
-            weakSelf.videoControlView.playBtn.selected = NO;
-            [weakSelf.videoControlView showItems];
-            weakSelf.currentPlayTime = 0;
-            weakSelf.placeholderImgV.alpha = 1.0;
-            
-            if (!weakSelf.videoControlView.panFlag) {
-                weakSelf.videoControlView.currentPlayTime = weakSelf.currentPlayTime;
-            }
-            
+            [weakSelf p_handlePlayFinished];
             if (weakSelf.delegate && [weakSelf.delegate respondsToSelector:@selector(videoPlayerFinished:)]) {
                 [weakSelf.delegate videoPlayerFinished:weakSelf];
             }
@@ -460,6 +460,18 @@
         [self.player.currentItem.asset cancelLoading];
         [self.player.currentItem removeObserver:self forKeyPath:@"status"];
         [self.player.currentItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
+    }
+}
+
+- (void)p_handlePlayFinished {
+    self.playerState = HeeePlayerStatePlayFinished;
+    self.videoControlView.playBtn.selected = NO;
+    [self.videoControlView showItems];
+    self.currentPlayTime = 0;
+    self.placeholderImgV.alpha = 1.0;
+    
+    if (!self.videoControlView.panFlag) {
+        self.videoControlView.currentPlayTime = self.currentPlayTime;
     }
 }
 
