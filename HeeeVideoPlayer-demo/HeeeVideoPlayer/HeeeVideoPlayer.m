@@ -135,6 +135,18 @@
     self.videoControlView.indicatorColor = indicatorColor;
 }
 
+- (void)setMutePlay:(BOOL)mutePlay {
+    _mutePlay = mutePlay;
+    
+    if (mutePlay) {
+        //混响，静音不中断其他app声音
+        [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
+    }else{
+        //静音有声音
+        [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
+    }
+}
+
 - (void)setItemArray:(NSArray<UIView *> *)itemArray {
     _itemArray = itemArray;
     for (UIView *view in itemArray) {
@@ -166,6 +178,12 @@
 - (void)setThumbnailImageContentMode:(UIViewContentMode)thumbnailImageContentMode {
     _thumbnailImageContentMode = thumbnailImageContentMode;
     self.placeholderImgV.contentMode = thumbnailImageContentMode;
+}
+
+- (void)setHiddenControlView:(BOOL)hiddenControlView {
+    _hiddenControlView = hiddenControlView;
+    self.videoControlView.hidden = hiddenControlView;
+    self.loadingView.hidden = hiddenControlView;
 }
 
 - (void)play {
@@ -322,6 +340,7 @@
         self.seekRate = self.videoControlView.currentPlayTime/self.videoControlView.duration;
     }
     
+    self.player.volume = !self.mutePlay;
     [self.player play];
     self.playerState = HeeePlayerStatePlaying;
     self.videoControlView.playBtn.selected = YES;
@@ -356,9 +375,11 @@
 }
 
 - (void)p_updateLoadingViewHidden:(BOOL)hidden {
-    self.loadingView.hidden = hidden;
-    if (!self.videoControlView.playBtn.selected || self.videoControlView.panFlag) {
-        self.loadingView.hidden = YES;
+    if (!self.hiddenControlView) {
+        self.loadingView.hidden = hidden;
+        if (!self.videoControlView.playBtn.selected || self.videoControlView.panFlag) {
+            self.loadingView.hidden = YES;
+        }
     }
 }
 
@@ -388,20 +409,13 @@
         
         weakSelf.seekRate = 0;
         weakSelf.currentPlayTime = CMTimeGetSeconds(time);
-        weakSelf.player.volume = !weakSelf.mutePlay;
         if (weakSelf.currentPlayTime>=0.1) {
             [UIView animateWithDuration:0.3 animations:^{
                 weakSelf.placeholderImgV.alpha = 0;
             }];
         }
         
-        if (weakSelf.mutePlay) {
-            //混响，静音不中断其他app声音
-            [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
-        }else{
-            //静音有声音
-            [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
-        }
+        [weakSelf setMutePlay:weakSelf.mutePlay];
         
         if (weakSelf.delegate && [weakSelf.delegate respondsToSelector:@selector(videoPlayer:playingAtTime:)]) {
             [weakSelf.delegate videoPlayer:weakSelf playingAtTime:weakSelf.currentPlayTime];

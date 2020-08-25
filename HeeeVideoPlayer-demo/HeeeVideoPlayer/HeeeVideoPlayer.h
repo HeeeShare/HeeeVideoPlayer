@@ -44,7 +44,8 @@ typedef enum : NSUInteger {
 @property (nonatomic,assign) BOOL showLittleProgress;//当隐藏其他控件时，是否显示底部的小进度条，默认NO
 @property (nonatomic,assign) UIEdgeInsets progressBarInsets;//进度条部分的位置偏移
 @property (nonatomic,strong) UIImage *thumbnailImage;//设置视频占位图
-@property (nonatomic,assign) UIViewContentMode thumbnailImageContentMode;//占位图的填充模式，默认UIViewContentModeScaleAspectFill
+@property (nonatomic,assign) UIViewContentMode thumbnailImageContentMode;//占位图的填充模式，默认UIViewContentModeScaleAspectFit
+@property (nonatomic,assign) BOOL hiddenControlView;//是否隐藏控制层
 @property (nonatomic,assign,readonly) HeeePlayerState playerState;//播放器状态
 @property (nonatomic,weak) id<HeeeVideoPlayerDelegate> delegate;
 - (void)play;
