@@ -212,7 +212,9 @@
 
 - (void)notifyOthersOnDeactivation {
     if (self.needNotifyOthersOnDeactivation) {
-        [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+        });
     }
 }
 
