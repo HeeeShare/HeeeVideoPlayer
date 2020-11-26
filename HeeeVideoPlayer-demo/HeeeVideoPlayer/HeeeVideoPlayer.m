@@ -12,9 +12,27 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 
-@interface HeeeVideoPlayer ()<HeeeVideoControlViewDelegate>
-@property (nonatomic,strong) id timeObserver;
+@interface HeeeVideoPreView : UIView
 @property (nonatomic,strong) AVPlayer *player;
+
+@end
+
+@implementation HeeeVideoPreView
++ (Class)layerClass {
+    return [AVPlayerLayer class];
+}
+- (AVPlayer*)player {
+    return [(AVPlayerLayer *)[self layer] player];
+}
+- (void)setPlayer:(AVPlayer *)player {
+    [(AVPlayerLayer *)[self layer] setPlayer:player];
+}
+
+@end
+
+@interface HeeeVideoPlayer ()<HeeeVideoControlViewDelegate>
+@property (nonatomic,strong) HeeeVideoPreView *videoPreView;
+@property (nonatomic,strong) id timeObserver;
 @property (nonatomic,strong) AVPlayerItem *playerItem;
 @property (nonatomic,assign) HeeePlayerState playerState;
 @property (nonatomic,strong) HeeeLoadingView *loadingView;//加载动画
@@ -27,21 +45,12 @@
 @property (nonatomic,assign) BOOL videoPauseByEvents;//播放被事件打断的
 @property (nonatomic,assign) BOOL isLocalVideo;//是否是本地视频
 @property (nonatomic,strong) dispatch_queue_t getDurationQueue;
+@property (nonatomic,strong) dispatch_queue_t getSizeQueue;
 @property (nonatomic,assign) CGFloat seekRate;//首次播放需要开始的进度比例
 
 @end
 
 @implementation HeeeVideoPlayer
-+ (Class)layerClass {
-    return [AVPlayerLayer class];
-}
-- (AVPlayer*)player {
-    return [(AVPlayerLayer *)[self layer] player];
-}
-- (void)setPlayer:(AVPlayer *)player {
-    [(AVPlayerLayer *)[self layer] setPlayer:player];
-}
-
 - (void)dealloc {
     [self notifyOthersOnDeactivation];
     [self p_removeObserver];
@@ -78,6 +87,18 @@
     [super setFrame:frame];
     
     self.placeholderImgV.frame = self.bounds;
+    
+    if (self.thumbnailImage) {
+        CGFloat videoWidth = self.bounds.size.width;
+        CGFloat videoHeight = self.bounds.size.width*self.thumbnailImage.size.height/self.thumbnailImage.size.width;
+        if (videoHeight > self.bounds.size.height) {
+            videoHeight = self.bounds.size.height;
+            videoWidth = videoHeight*self.thumbnailImage.size.width/self.thumbnailImage.size.height;
+        }
+        self.videoPreView.frame = CGRectMake(0, 0, videoWidth, videoHeight);
+        self.videoPreView.center = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
+    }
+    
     if (frame.size.width>0 && [UIDevice currentDevice].orientation==UIInterfaceOrientationPortrait) {
         self.originalFrame = frame;
     }
@@ -105,6 +126,10 @@
 - (void)setVideoUrl:(NSString *)videoUrl {
     _videoUrl = videoUrl;
     
+    if (!self.thumbnailImage) {
+        [self p_getVideoSize];
+    }
+    
     //网络视频与本地视频的判断条件
     if (![videoUrl containsString:@"http"]) {
         self.isLocalVideo = YES;
@@ -112,7 +137,7 @@
     
     [self pause];
     [self p_removeObserver];
-    self.player = nil;
+    self.videoPreView.player = nil;
     self.playerItem = nil;
     self.currentPlayTime = 0;
     self.videoControlView.currentPlayTime = self.currentPlayTime;
@@ -166,8 +191,21 @@
 
 - (void)setThumbnailImage:(UIImage *)thumbnailImage {
     _thumbnailImage = thumbnailImage;
-    self.placeholderImgV.alpha = 1.0;
+    [UIView animateWithDuration:0.25 animations:^{
+        self.placeholderImgV.alpha = 1.0;
+    }];
     self.placeholderImgV.image = thumbnailImage;
+    
+    if (thumbnailImage) {
+        CGFloat videoWidth = self.bounds.size.width;
+        CGFloat videoHeight = self.bounds.size.width*thumbnailImage.size.height/thumbnailImage.size.width;
+        if (videoHeight > self.bounds.size.height) {
+            videoHeight = self.bounds.size.height;
+            videoWidth = videoHeight*thumbnailImage.size.width/thumbnailImage.size.height;
+        }
+        self.videoPreView.frame = CGRectMake(0, 0, videoWidth, videoHeight);
+        self.videoPreView.center = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
+    }
 }
 
 - (void)setProgressBarInsets:(UIEdgeInsets)progressBarInsets {
@@ -198,7 +236,7 @@
     if (self.playerState!=HeeePlayerStatePlaying) {
         self.currentPlayTime = time;
         self.videoControlView.currentPlayTime = time;
-        [self.player seekToTime:CMTimeMakeWithSeconds(time,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
+        [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(time,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
     }
 }
 
@@ -234,10 +272,10 @@
         if (!isnan(sec) && self.videoDuration != sec) {
             self.videoDuration = sec;
             self.videoControlView.duration = self.videoDuration;
-            [self.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.duration*self.seekRate,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
+            [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.duration*self.seekRate,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
         }
         
-        NSArray *array = self.player.currentItem.loadedTimeRanges;
+        NSArray *array = self.videoPreView.player.currentItem.loadedTimeRanges;
         // 本次缓冲的时间范围
         CMTimeRange timeRange = [array.firstObject CMTimeRangeValue];
         // 缓冲总长度
@@ -289,6 +327,7 @@
 #pragma mark - private
 - (void)p_init {
     self.backgroundColor = [UIColor blackColor];
+    [self addSubview:self.videoPreView];
     [self addSubview:self.placeholderImgV];
     [self addSubview:self.loadingView];
     [self addSubview:self.videoControlView];
@@ -303,14 +342,14 @@
 
 - (void)p_play {
     [self p_removeObserver];
-    if (!self.player.currentItem) {
+    if (!self.videoPreView.player.currentItem) {
         if (self.isLocalVideo) {
             self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL fileURLWithPath:self.videoUrl]];
         }else{
             self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:self.videoUrl]];
         }
         
-        self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
+        self.videoPreView.player = [AVPlayer playerWithPlayerItem:self.playerItem];
     }
     
     [self p_addObserver];
@@ -328,7 +367,7 @@
 
 - (void)p_pause {
     [self p_removeObserver];
-    [self.player pause];
+    [self.videoPreView.player pause];
     self.videoControlView.playBtn.selected = NO;
     [self.videoControlView showItems];
     if (self.playerState == HeeePlayerStatePlaying) {
@@ -345,16 +384,16 @@
 
 - (void)p_playAction {
     if (self.playerState==HeeePlayerStatePlayFinished) {
-        [self.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.currentPlayTime,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
+        [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(self.videoControlView.currentPlayTime,30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
     }
     
     if (self.playerState==HeeePlayerStateDefault && self.videoControlView.duration) {
         self.seekRate = self.videoControlView.currentPlayTime/self.videoControlView.duration;
     }
     
-    self.player.volume = !self.mutePlay;
+    self.videoPreView.player.volume = !self.mutePlay;
     [self setMutePlay:self.mutePlay];
-    [self.player play];
+    [self.videoPreView.player play];
     self.playerState = HeeePlayerStatePlaying;
     self.videoControlView.playBtn.selected = YES;
     [self.videoControlView hideItemsDelay:YES];
@@ -399,21 +438,21 @@
 //重新加载item并播放视频
 - (void)p_reloadPlayerToPlay {
     if (self.playerState==HeeePlayerStatePlaying || self.playerState==HeeePlayerStateError) {
-        [self.player pause];
+        [self.videoPreView.player pause];
         [self p_removeObserver];
         
         self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:_videoUrl]];
-        [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
-        [self.player seekToTime:CMTimeMakeWithSeconds(self.currentPlayTime, 30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
+        [self.videoPreView.player replaceCurrentItemWithPlayerItem:self.playerItem];
+        [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(self.currentPlayTime, 30) toleranceBefore:CMTimeMake(1, 30) toleranceAfter:CMTimeMake(1, 30)];
         [self p_addObserver];
-        [self.player play];
+        [self.videoPreView.player play];
         self.playerState = HeeePlayerStatePlaying;
     }
 }
 
 - (void)p_addObserver {
     __weak __typeof(self) weakSelf = self;
-    self.timeObserver = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1.0, 30) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+    self.timeObserver = [self.videoPreView.player addPeriodicTimeObserverForInterval:CMTimeMake(1.0, 30) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
         [weakSelf p_updateLoadingViewHidden:YES];
         
         if (CMTimeGetSeconds(time) <= weakSelf.seekRate*weakSelf.videoDuration) {
@@ -445,8 +484,8 @@
         }
     }];
     
-    [self.player.currentItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
-    [self.player.currentItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];
+    [self.videoPreView.player.currentItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
+    [self.videoPreView.player.currentItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidEnterBackground) name:UIApplicationDidEnterBackgroundNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
@@ -456,12 +495,12 @@
 
 - (void)p_removeObserver {
     if (self.timeObserver) {
-        [self.player removeTimeObserver:self.timeObserver];
+        [self.videoPreView.player removeTimeObserver:self.timeObserver];
         self.timeObserver = nil;
-        [self.player.currentItem cancelPendingSeeks];
-        [self.player.currentItem.asset cancelLoading];
-        [self.player.currentItem removeObserver:self forKeyPath:@"status"];
-        [self.player.currentItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
+        [self.videoPreView.player.currentItem cancelPendingSeeks];
+        [self.videoPreView.player.currentItem.asset cancelLoading];
+        [self.videoPreView.player.currentItem removeObserver:self forKeyPath:@"status"];
+        [self.videoPreView.player.currentItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
     }
 }
 
@@ -501,6 +540,38 @@
     });
 }
 
+- (void)p_getVideoSize {
+    self.placeholderImgV.alpha = 0;
+    self.getSizeQueue = dispatch_queue_create("com.Heee.getVideoSize", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(self.getSizeQueue, ^{
+        NSURL*videoUrl = [NSURL URLWithString:self.videoUrl];
+        if (self.isLocalVideo) {
+            videoUrl = [NSURL fileURLWithPath:self.videoUrl];
+        }
+        AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:videoUrl options:nil];
+        CGSize videoSize = CGSizeZero;
+        NSArray *array = avUrlAsset.tracks;
+        for (AVAssetTrack *track in array) {
+            if ([track.mediaType isEqualToString:AVMediaTypeVideo]) {
+                videoSize = track.naturalSize;
+            }
+        }
+        
+        AVAssetImageGenerator *gen = [[AVAssetImageGenerator alloc] initWithAsset:avUrlAsset];
+        gen.appliesPreferredTrackTransform = YES;
+        CMTime time = CMTimeMakeWithSeconds(0.0, 600);
+        NSError *error = nil;
+        CMTime actualTime;
+        CGImageRef image = [gen copyCGImageAtTime:time actualTime:&actualTime error:&error];
+        UIImage *thumb = [[UIImage alloc] initWithCGImage:image];
+        CGImageRelease(image);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.thumbnailImage = thumb;
+        });
+    });
+}
+
 - (void)p_pauseByEventsStart {
     if (self.playerState==HeeePlayerStatePlaying) {
         [self p_pause];
@@ -510,6 +581,7 @@
 
 - (void)p_playByEventsEnd {
     if (self.videoPauseByEvents) {
+        self.videoPauseByEvents = NO;
         [self p_play];
         [self.videoControlView hideItemsDelay:YES];
     }
@@ -534,7 +606,7 @@
 
 - (void)videoControlView:(HeeeVideoControlView *)progressBar seekToTime:(CGFloat)time {
     self.currentPlayTime = time;
-    [self.player seekToTime:CMTimeMakeWithSeconds(time, 30) toleranceBefore:kCMTimeZero
+    [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(time, 30) toleranceBefore:kCMTimeZero
              toleranceAfter:kCMTimeZero];
 }
 
@@ -557,6 +629,14 @@
 }
 
 #pragma mark - lazy
+- (HeeeVideoPreView *)videoPreView {
+    if (!_videoPreView) {
+        _videoPreView = [HeeeVideoPreView new];
+    }
+    
+    return _videoPreView;
+}
+
 - (HeeeLoadingView *)loadingView {
     if (!_loadingView) {
         _loadingView = [[HeeeLoadingView alloc] init];
