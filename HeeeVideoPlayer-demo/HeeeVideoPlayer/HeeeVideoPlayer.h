@@ -43,6 +43,7 @@ typedef enum : NSUInteger {
 @property (nonatomic,assign) BOOL brightnessVolumeControl;//是否需要亮度与音量的手势控制，默认YES
 @property (nonatomic,assign) BOOL showLittleProgress;//当隐藏其他控件时，是否显示底部的小进度条，默认NO
 @property (nonatomic,assign) UIEdgeInsets progressBarInsets;//进度条部分的位置偏移
+@property (nonatomic,strong,readonly) UIImageView *placeholderImgV;//第一贞展位图
 @property (nonatomic,strong) UIImage *thumbnailImage;//设置视频占位图
 @property (nonatomic,assign) UIViewContentMode thumbnailImageContentMode;//占位图的填充模式，默认UIViewContentModeScaleAspectFit
 ///是否需要主动通知其他app播放完成，默认是。(注意：如果同时开启了多个播放器，主动通知会将所有的视频暂停，因此可以将此属性设置成NO，然后自己控制通知时机)。

@@ -109,8 +109,10 @@
     
     self.videoControlView.duration = self.videoDuration;
     [self p_handleIndicatiorTimer];
-    if (_autoGetVideoDuration) {
-        [self p_getVideoDuration];
+    if (_autoGetVideoDuration && self.superview) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self p_getVideoDuration];
+        });
     }
 }
 
