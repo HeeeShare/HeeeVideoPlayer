@@ -395,6 +395,7 @@
     
     self.videoPreView.player.volume = !self.mutePlay;
     [self setMutePlay:self.mutePlay];
+    [self.videoPreView.player seekToTime:CMTimeMakeWithSeconds(self.currentPlayTime, 30) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
     [self.videoPreView.player play];
     self.playerState = HeeePlayerStatePlaying;
     self.videoControlView.playBtn.selected = YES;
